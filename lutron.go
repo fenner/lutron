@@ -43,6 +43,8 @@ type Conn struct {
 	monitors []chan LevelChange
 	dimmers  map[int]*Dimmer
 	keypads  map[int]*Keypad
+	// todo: hvac monitors
+	hvacs    map[int]*Hvac
 }
 
 func Dial(addr, user, pass string) (*Conn, error) {
@@ -55,6 +57,7 @@ func Dial(addr, user, pass string) (*Conn, error) {
 	c.requests = make(chan request, 100)
 	c.dimmers = make(map[int]*Dimmer)
 	c.keypads = make(map[int]*Keypad)
+	c.hvacs = make(map[int]*Hvac)
 
 	go c.controller()
 	setup := []string{
@@ -94,7 +97,7 @@ func (c *Conn) controller() {
 		select {
 		case str := <-evtCh:
 			if c.Trace {
-				log.Println(str)
+				log.Println("<- ", str)
 			}
 			c.eventFromRepeater(str)
 
@@ -105,7 +108,7 @@ func (c *Conn) controller() {
 
 		case req := <-c.requests:
 			if c.Trace {
-				log.Println(req.cmd)
+				log.Println("-> ", req.cmd)
 			}
 			sendln(c.sock, req.cmd)
 		}
@@ -145,6 +148,8 @@ func (c *Conn) processEvent(cmd string, id int, rest string) {
 		i = c.Dimmer(id)
 	case "DEVICE":
 		i = c.Keypad(id)
+	case "HVAC":
+		i = c.Hvac(id)
 	case "MONITORING":
 		return
 	default:
@@ -165,6 +170,9 @@ func (c *Conn) afterReconnect() {
 	}
 	for _, k := range c.keypads {
 		k.reconnect()
+	}
+	for _, h := range c.hvacs {
+		h.reconnect()
 	}
 }
 
@@ -248,6 +256,24 @@ func (c *Conn) Keypad(id int) *Keypad {
 		c.keypads[id] = k
 	}
 	return k
+}
+
+// Get a reference to an HVAC controller.
+// The integration id must be obtained from the RadioRA2 software.
+func (c *Conn) Hvac(id int) *Hvac {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	h := c.hvacs[id]
+	if h == nil {
+		h = &Hvac{Component: Component{
+			Conn:    c,
+			command: "HVAC",
+			id:      id}}
+		c.hvacs[id] = h
+		// TODO: add to hvac monitors
+	}
+	return h
 }
 
 func (c *Conn) dial() (*telnet.Conn, error) {

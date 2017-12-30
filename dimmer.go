@@ -188,7 +188,7 @@ func (d *Dimmer) handleEvent(event string) error {
 		break
 
 	default:
-		log.Printf("dimmer %d ignoring %s", d.Id, event)
+		log.Printf("dimmer %d ignoring %s", d.Id(), event)
 	}
 	return nil
 }

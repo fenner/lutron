@@ -194,7 +194,7 @@ func (k *Keypad) handleEvent(event string) error {
 		}
 		k.handleLed(uint8(c-80), uint8(state))
 	} else {
-		log.Printf("keypad %d ignoring %s", k.Id, event)
+		log.Printf("keypad %d ignoring %s", k.Id(), event)
 	}
 	return nil
 }

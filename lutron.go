@@ -65,6 +65,7 @@ func Dial(addr, user, pass string) (*Conn, error) {
 		"#MONITORING,3,1", // Enable button (device) monitoring
 		"#MONITORING,4,1", // Enable LED (device) monitoring
 		"#MONITORING,5,1", // Enable zone (output) monitoring
+		"#MONITORING,17,1", // Enable HVAC monitoring
 	}
 	for _, s := range setup {
 		if err := sendln(t, s); err != nil {
